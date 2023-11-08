@@ -49,7 +49,8 @@ def generate_pdfjs_page(filename, url):
         filename: The filename of the PDF to open.
         url: The URL being opened.
     """
-    if not is_available():
+    pdfjs_bin = is_available()
+    if not pdfjs_bin:
         pdfjs_dir = os.path.join(standarddir.data(), 'pdfjs')
         return jinja.render('no_pdfjs.html',
                             url=url.toDisplayString(),
@@ -62,7 +63,7 @@ def generate_pdfjs_page(filename, url):
                         '</body><script>{}</script>'.format(script))
     # WORKAROUND for the fact that PDF.js tries to use the Fetch API even with
     # qute:// URLs.
-    pdfjs_script = '<script src="../build/pdf.js"></script>'
+    pdfjs_script = '<script src="../build/{}"></script>'.format(pdfjs_bin)
     html = html.replace(pdfjs_script,
                         '<script>window.Response = undefined;</script>\n' +
                         pdfjs_script)
@@ -202,15 +203,30 @@ def _read_from_system(system_path, names):
     return (None, None)
 
 
+def _get_pdfjs_basename():
+    """Checks for pdf.js module availability and returns the basename."""
+    final_ext = None
+    exts = ['pdf.js', 'pdf.mjs']
+    for ext in exts:
+        try:
+            final_ext = ext
+            get_pdfjs_res('build/' + ext)
+        except PDFJSNotFound:
+            final_ext = None
+    if not final_ext:
+        raise PDFJSNotFound('build/pdf.js') from None
+    return final_ext
+
+
 def is_available():
-    """Return true if a pdfjs installation is available."""
+    """Checks for general availabilty of pdfjs and returns pdf.js basename."""
+    pdfjs_ext = None
     try:
-        get_pdfjs_res('build/pdf.js')
+        pdfjs_ext = _get_pdfjs_basename()
         get_pdfjs_res('web/viewer.html')
     except PDFJSNotFound:
-        return False
-    else:
-        return True
+        pdfjs_ext = None
+    return pdfjs_ext
 
 
 def should_use_pdfjs(mimetype, url):
