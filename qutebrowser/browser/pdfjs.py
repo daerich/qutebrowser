@@ -49,8 +49,8 @@ def generate_pdfjs_page(filename, url):
         filename: The filename of the PDF to open.
         url: The URL being opened.
     """
-    pdfjs_bin = is_available()
-    if not pdfjs_bin:
+    pdfjs_name = _get_pdfjs_basename()
+    if pdfjs_name is None or not is_available():
         pdfjs_dir = os.path.join(standarddir.data(), 'pdfjs')
         return jinja.render('no_pdfjs.html',
                             url=url.toDisplayString(),
@@ -63,7 +63,7 @@ def generate_pdfjs_page(filename, url):
                         '</body><script>{}</script>'.format(script))
     # WORKAROUND for the fact that PDF.js tries to use the Fetch API even with
     # qute:// URLs.
-    pdfjs_script = '<script src="../build/{}"></script>'.format(pdfjs_bin)
+    pdfjs_script = f'<script src="../build/{html.escape(pdfjs_name)}"></script>'
     html = html.replace(pdfjs_script,
                         '<script>window.Response = undefined;</script>\n' +
                         pdfjs_script)
@@ -204,29 +204,26 @@ def _read_from_system(system_path, names):
 
 
 def _get_pdfjs_basename():
-    """Checks for pdf.js module availability and returns the basename."""
-    final_ext = None
+    """Checks for pdf.js main module availability and returns the basename if available."""
     exts = ['pdf.js', 'pdf.mjs']
     for ext in exts:
         try:
-            final_ext = ext
             get_pdfjs_res('build/' + ext)
+            return ext
         except PDFJSNotFound:
-            final_ext = None
-    if not final_ext:
-        raise PDFJSNotFound('build/pdf.js') from None
-    return final_ext
+            pass
+    return None
 
 
 def is_available():
-    """Checks for general availabilty of pdfjs and returns pdf.js basename."""
-    pdfjs_ext = None
+    """Return true if certain parts of a pdfjs installation are available."""
     try:
-        pdfjs_ext = _get_pdfjs_basename()
+        # get_pdfjs_res('build/pdf.mjs')
         get_pdfjs_res('web/viewer.html')
     except PDFJSNotFound:
-        pdfjs_ext = None
-    return pdfjs_ext
+        return False
+    else:
+        return True
 
 
 def should_use_pdfjs(mimetype, url):

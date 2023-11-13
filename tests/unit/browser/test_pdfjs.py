@@ -182,7 +182,7 @@ def test_read_from_system_oserror(tmpdir, caplog, unreadable_file):
     assert message.startswith('OSError while reading PDF.js file:')
 
 
-@pytest.mark.parametrize('available', ['pdf.js', None])
+@pytest.mark.parametrize('available', [True, False])
 def test_is_available(available, mocker):
     mock = mocker.patch.object(pdfjs, 'get_pdfjs_res', autospec=True)
     if available:
