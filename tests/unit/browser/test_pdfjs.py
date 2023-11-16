@@ -188,7 +188,7 @@ def test_is_available(available, mocker):
     if available:
         mock.return_value = b'foo'
     else:
-        mock.side_effect = pdfjs.PDFJSNotFound('build/pdf.js')
+        mock.side_effect = pdfjs.PDFJSNotFound('web/viewer.html')
 
     assert pdfjs.is_available() == available
 
